@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>Conectando con eWeLink…</title>
+<style>body{font-family:system-ui,sans-serif;max-width:460px;margin:12vh auto;padding:0 20px;text-align:center;color:#1f2937}
+code{background:#f3f4f6;padding:2px 6px;border-radius:4px;word-break:break-all}</style></head>
+<body><h2 id="t">Conectando con eWeLink…</h2><p id="m">Un momento, regresando a tu FacePass.</p>
+<script>
+// Página puente de FacePass: eWeLink regresa aquí con ?code=&region=&state=.
+// El state (base64url de {"o": "<dirección del servidor FacePass>", "n": ...}) dice a dónde volver.
+// Solo reenvía a direcciones de red local / localhost / *.facepass.com.mx y siempre a /ewelink/oauth.
+(function () {
+  var q = new URLSearchParams(location.search), st = q.get('state') || '', code = q.get('code') || '';
+  function fallo(txt) {
+    document.getElementById('t').textContent = 'No se pudo regresar a FacePass';
+    var m = document.getElementById('m');
+    m.textContent = txt + ' ';
+    if (code) { m.appendChild(document.createElement('br')); m.appendChild(document.createTextNode('Código (caduca en 30 s): ')); var c = document.createElement('code'); c.textContent = code; m.appendChild(c); }
+  }
+  function permitido(u) {
+    var h = u.hostname.toLowerCase();
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    if (h === 'localhost' || h === '127.0.0.1' || h.endsWith('.local') || h.endsWith('.lan') || h.endsWith('.localhost')) return true;
+    if (/^10\./.test(h) || /^192\.168\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+    if (h === 'facepass.com.mx' || h.endsWith('.facepass.com.mx')) return true;
+    return h.indexOf('.') < 0;                 // nombre de equipo sin dominio (p. ej. "facepass")
+  }
+  try {
+    var b = st.replace(/-/g, '+').replace(/_/g, '/'); while (b.length % 4) b += '=';
+    var info = JSON.parse(atob(b)), u = new URL(info.o);
+    if (!code || !permitido(u)) return fallo('La solicitud no es válida.');
+    var dest = u.origin + '/ewelink/oauth?code=' + encodeURIComponent(code) +
+      '&region=' + encodeURIComponent(q.get('region') || '') + '&state=' + encodeURIComponent(st);
+    location.replace(dest);
+  } catch (e) { fallo('Falta información de regreso.'); }
+})();
+</script></body></html>
